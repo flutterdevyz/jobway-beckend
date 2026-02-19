@@ -15,10 +15,13 @@ class Job(Base):
     max_salary = Column(Integer, nullable=True)
     description = Column(Text, nullable=False)
     requirements = Column(Text, nullable=True) # Storing as JSON string or simple text for now
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    job_image_url = Column(String, nullable=True)
     city = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     employer = relationship("User", backref="jobs")
+    category = relationship("Category", back_populates="data")
 
 class Application(Base):
     __tablename__ = "applications"

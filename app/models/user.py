@@ -25,5 +25,8 @@ class User(Base):
     city = Column(String, nullable=True)
     location = Column(String, nullable=True)
     
+    is_premium = Column(Boolean, default=False)
+    premium_expires_at = Column(DateTime, nullable=True)
+    
     is_active = Column(Boolean, default=True)
 

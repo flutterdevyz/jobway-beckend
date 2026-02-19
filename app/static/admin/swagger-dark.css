@@ -1,0 +1,41 @@
+/* Basic Dark Mode Overrides for Swagger UI */
+.swagger-ui.dark {
+    filter: invert(88%) hue-rotate(180deg);
+    background-color: #1b1b1b !important;
+}
+
+.swagger-ui.dark .topbar {
+    filter: invert(100%) hue-rotate(180deg);
+}
+
+.swagger-ui.dark img,
+.swagger-ui.dark .opblock-summary-method,
+.swagger-ui.dark .tab li button,
+.swagger-ui.dark .model-box-control {
+    filter: invert(100%) hue-rotate(180deg);
+}
+
+.swagger-ui.dark .info .title,
+.swagger-ui.dark .info p,
+.swagger-ui.dark .info li,
+.swagger-ui.dark .opblock .opblock-summary-path,
+.swagger-ui.dark .opblock .opblock-summary-description,
+.swagger-ui.dark .opblock .opblock-section-header h4,
+.swagger-ui.dark .responses-table tr td,
+.swagger-ui.dark .responses-table tr th,
+.swagger-ui.dark .parameter__name,
+.swagger-ui.dark .parameter__type,
+.swagger-ui.dark .parameter__in,
+.swagger-ui.dark .model-title,
+.swagger-ui.dark .model-box {
+    color: #111 !important;
+    /* Will become light after inversion */
+}
+
+/* Fix for buttons and inputs */
+.swagger-ui.dark button.btn,
+.swagger-ui.dark input,
+.swagger-ui.dark select,
+.swagger-ui.dark textarea {
+    filter: invert(0%) !important;
+}

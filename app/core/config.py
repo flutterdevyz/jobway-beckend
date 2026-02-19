@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./jobway_v3.db"
     SECRET_KEY: str = "supersecretkey" # Change this in production!
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 52560000
+    BASE_URL: str = "http://10.31.74.7:8080"
     class Config:
         env_file = ".env"
 

@@ -1,6 +1,8 @@
-from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from pydantic import BaseModel, field_validator
+from app.schemas.category import CategoryResponse
+from app.core.utils import get_full_url
 
 class JobBase(BaseModel):
     title: str
@@ -11,6 +13,8 @@ class JobBase(BaseModel):
     description: str
     requirements: Optional[List[str]] = None
     city: Optional[str] = None
+    category_id: Optional[int] = None
+    job_image_url: Optional[str] = None
 
 class JobCreate(JobBase):
     pass
@@ -24,11 +28,32 @@ class JobUpdate(BaseModel):
     description: Optional[str] = None
     requirements: Optional[List[str]] = None
     city: Optional[str] = None
+    category_id: Optional[int] = None
+    job_image_url: Optional[str] = None
 
 class JobResponse(JobBase):
     id: int
-    employer_id: int
+    employer_id: Optional[int] = None
     created_at: datetime
+    category: Optional[CategoryResponse] = None
+
+    @field_validator("requirements", mode="before")
+    @classmethod
+    def ensure_list(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            try:
+                import json
+                return json.loads(v)
+            except:
+                return [v]
+        return v
+
+    @field_validator("job_image_url", "company_image_url", mode="after")
+    @classmethod
+    def prepend_base_url(cls, v: Optional[str]) -> Optional[str]:
+        return get_full_url(v)
 
     class Config:
         from_attributes = True

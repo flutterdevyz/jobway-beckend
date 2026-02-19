@@ -47,7 +47,9 @@ def create_job(
         max_salary=job_in.max_salary,
         description=job_in.description,
         requirements=reqs_str,
-        city=job_in.city or current_user.city # Fallback to user's city
+        city=job_in.city or current_user.city, # Fallback to user's city
+        category_id=job_in.category_id,
+        job_image_url=job_in.job_image_url
     )
     db.add(new_job)
     db.commit()
@@ -59,21 +61,36 @@ def create_job(
 
 @router.get("/", response_model=List[JobResponse])
 def read_jobs(
+    category_id: int = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    jobs = db.query(Job).order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
-    # Post-process requirements from JSON string to list
-    for job in jobs:
-         if job.requirements:
-             try:
-                 job.requirements = json.loads(job.requirements)
-             except:
-                 job.requirements = []
-    return jobs
-
-    return jobs
+    try:
+        print(f"DEBUG: Entering read_jobs, category_id={category_id}")
+        query = db.query(Job)
+        if category_id:
+            query = query.filter(Job.category_id == category_id)
+        
+        jobs = query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
+        print(f"DEBUG: Found {len(jobs)} jobs")
+        
+        # Post-process requirements
+        for job in jobs:
+            if job.requirements:
+                try:
+                    job.requirements = json.loads(job.requirements)
+                except:
+                    print(f"DEBUG: Failed to parse requirements for job {job.id}: {job.requirements}")
+                    job.requirements = []
+        
+        print("DEBUG: Returning jobs list")
+        return jobs
+    except Exception as e:
+        print(f"DEBUG ERROR in read_jobs: {e}")
+        import traceback
+        traceback.print_exc()
+        raise e
 
 @router.get("/my-jobs", response_model=List[JobResponse])
 def get_my_jobs(
@@ -177,6 +194,10 @@ def update_job(
         job.city = job_in.city
     if job_in.requirements is not None:
         job.requirements = json.dumps(job_in.requirements)
+    if job_in.category_id is not None:
+        job.category_id = job_in.category_id
+    if job_in.job_image_url is not None:
+        job.job_image_url = job_in.job_image_url
 
     db.commit()
     db.refresh(job)
