@@ -73,6 +73,11 @@ class PasswordChange(BaseModel):
 class AdminPasswordReset(BaseModel):
     new_password: str
 
+class ResetPasswordRequest(BaseModel):
+    phone_number: str
+    full_name: str
+    letter: str
+
 # New Specific Responses
 class EmployerResponse(UserBase):
     id: int

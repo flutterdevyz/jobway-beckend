@@ -48,7 +48,7 @@ async def custom_swagger_ui_html():
         openapi_url=app.openapi_url,
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_favicon_url="/admin-ui/images/jobway.png",
+        swagger_favicon_url="admin-ui/images/jobway.png",
     )
     
     # Inject our custom CSS and JS
@@ -121,4 +121,3 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(uploads.router, prefix="/api")
 app.include_router(contact.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
-

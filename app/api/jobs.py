@@ -62,15 +62,24 @@ def create_job(
 @router.get("/", response_model=List[JobResponse])
 def read_jobs(
     category_id: int = None,
+    min_salary: int = None,
+    max_salary: int = None,
+    city: str = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
     try:
-        print(f"DEBUG: Entering read_jobs, category_id={category_id}")
+        print(f"DEBUG: Entering read_jobs, category_id={category_id}, min_salary={min_salary}, max_salary={max_salary}, city={city}")
         query = db.query(Job)
         if category_id:
             query = query.filter(Job.category_id == category_id)
+        if min_salary is not None:
+            query = query.filter(Job.max_salary >= min_salary)
+        if max_salary is not None:
+            query = query.filter(Job.min_salary <= max_salary)
+        if city:
+            query = query.filter(Job.city.ilike(f"%{city}%"))
         
         jobs = query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
         print(f"DEBUG: Found {len(jobs)} jobs")

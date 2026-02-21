@@ -619,37 +619,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchData(url) {
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${state.token}` }
-        });
-
-        if (response.status === 401) {
-            localStorage.removeItem('access_token');
-            state.token = null;
-            showLogin();
-            throw new Error('Unauthorized');
-        }
-
-        if (!response.ok) throw new Error('API Error');
-        return await response.json();
-    }
-
-    window.deleteItem = async (type, id) => {
-        if (!confirm('Are you sure?')) return;
-        try {
-            const res = await fetch(`/api/admin/${type}/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${state.token}` }
-            });
-            if (res.ok) {
-                renderView(state.currentView);
-            } else {
-                alert('Delete failed');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    };
-
-    init();});
+    init();
+});
