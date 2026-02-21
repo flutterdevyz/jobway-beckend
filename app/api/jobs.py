@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.job import Job, Application
@@ -119,6 +120,67 @@ def get_my_jobs(
              except:
                  job.requirements = []
     return jobs
+
+@router.get("/filter", summary="Filter jobs by salary and city")
+def filter_jobs(
+    min_salary: Optional[int] = None,
+    max_salary: Optional[int] = None,
+    city: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    Barcha ishlarni oladi va filter qilish imkoniyatini beradi.
+
+    - **GET /jobs/filter** — filtrsiz: barcha joblar + mavjud citylar + salary range
+    - **GET /jobs/filter?city=Toshkent** — faqat Toshkentdagi joblar
+    - **GET /jobs/filter?min_salary=1000000&max_salary=5000000** — salary bo'yicha filter
+    """
+    # --- Metadata: barcha mavjud citylar ---
+    city_rows = db.query(Job.city).filter(Job.city != None, Job.city != "").distinct().all()
+    all_cities = sorted([row[0] for row in city_rows if row[0]])
+
+    # --- Metadata: global min va max salary ---
+    salary_stats = db.query(
+        func.min(Job.min_salary).label("global_min"),
+        func.max(Job.max_salary).label("global_max")
+    ).first()
+    global_min_salary = salary_stats.global_min or 0
+    global_max_salary = salary_stats.global_max or 0
+
+    # --- Jobs query ---
+    query = db.query(Job)
+    if min_salary is not None:
+        query = query.filter(Job.max_salary >= min_salary)
+    if max_salary is not None:
+        query = query.filter(Job.min_salary <= max_salary)
+    if city:
+        query = query.filter(Job.city.ilike(f"%{city}%"))
+
+    jobs = query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
+
+    # --- Requirements deserialize ---
+    jobs_list = []
+    for job in jobs:
+        if job.requirements:
+            try:
+                job.requirements = json.loads(job.requirements)
+            except Exception:
+                job.requirements = []
+        jobs_list.append(job)
+
+    return {
+        "filter_info": {
+            "cities": all_cities,
+            "salary_range": {
+                "min": global_min_salary,
+                "max": global_max_salary
+            }
+        },
+        "total": len(jobs_list),
+        "jobs": jobs_list
+    }
 
 @router.get("/{job_id}", response_model=JobResponse)
 def read_job(
