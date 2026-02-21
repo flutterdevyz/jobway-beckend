@@ -6,7 +6,7 @@ from sqlalchemy import func
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.job import Job, Application
-from app.schemas.job import JobCreate, JobResponse, ApplicationResponse, JobUpdate, ApplicationCreate
+from app.schemas.job import JobCreate, JobResponse, ApplicationResponse, JobUpdate, ApplicationCreate, JobFilterRequest
 from app.api import deps
 import json
 
@@ -121,27 +121,20 @@ def get_my_jobs(
                  job.requirements = []
     return jobs
 
-@router.get("/filter", summary="Filter jobs by salary and city")
-def filter_jobs(
-    min_salary: Optional[int] = None,
-    max_salary: Optional[int] = None,
-    city: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
+@router.get("/filter", summary="Filter uchun mavjud shaharlar va salary range")
+def get_filter_options(
     db: Session = Depends(get_db)
 ):
     """
-    Barcha ishlarni oladi va filter qilish imkoniyatini beradi.
-
-    - **GET /jobs/filter** — filtrsiz: barcha joblar + mavjud citylar + salary range
-    - **GET /jobs/filter?city=Toshkent** — faqat Toshkentdagi joblar
-    - **GET /jobs/filter?min_salary=1000000&max_salary=5000000** — salary bo'yicha filter
+    Filter UI uchun kerakli ma'lumotlarni qaytaradi:
+    - Mavjud **shaharlar** ro'yxati
+    - Barcha joblardagi **min** va **max** salary
     """
-    # --- Metadata: barcha mavjud citylar ---
+    # Mavjud shaharlar
     city_rows = db.query(Job.city).filter(Job.city != None, Job.city != "").distinct().all()
     all_cities = sorted([row[0] for row in city_rows if row[0]])
 
-    # --- Metadata: global min va max salary ---
+    # Global min va max salary
     salary_stats = db.query(
         func.min(Job.min_salary).label("global_min"),
         func.max(Job.max_salary).label("global_max")
@@ -149,18 +142,50 @@ def filter_jobs(
     global_min_salary = salary_stats.global_min or 0
     global_max_salary = salary_stats.global_max or 0
 
+    return {
+        "cities": all_cities,
+        "salary_range": {
+            "min": global_min_salary,
+            "max": global_max_salary
+        }
+    }
+
+
+@router.post("/filter/result", summary="Filter bo'yicha joblarni qaytaradi (POST)")
+def filter_jobs(
+    filters: JobFilterRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Ishlarni filter qiladi. Parametrlar POST body orqali JSON formatida yuboriladi.
+
+    **Misol body:**
+    ```json
+    {
+      "min_salary": 1000000,
+      "max_salary": 5000000,
+      "city": "Toshkent",
+      "skip": 0,
+      "limit": 100
+    }
+    ```
+    - Barcha maydonlar ixtiyoriy (optional).
+    - Bo'sh `{}` yuborsangiz — barcha joblar qaytariladi.
+    """
+    from app.core.utils import get_full_url
+
     # --- Jobs query ---
     query = db.query(Job)
-    if min_salary is not None:
-        query = query.filter(Job.max_salary >= min_salary)
-    if max_salary is not None:
-        query = query.filter(Job.min_salary <= max_salary)
-    if city:
-        query = query.filter(Job.city.ilike(f"%{city}%"))
+    if filters.min_salary is not None:
+        query = query.filter(Job.max_salary >= filters.min_salary)
+    if filters.max_salary is not None:
+        query = query.filter(Job.min_salary <= filters.max_salary)
+    if filters.city:
+        query = query.filter(Job.city.ilike(f"%{filters.city}%"))
 
-    jobs = query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
+    jobs = query.order_by(Job.created_at.desc()).offset(filters.skip).limit(filters.limit).all()
 
-    # --- Requirements deserialize ---
+    # --- Requirements deserialize + image URL fix ---
     jobs_list = []
     for job in jobs:
         if job.requirements:
@@ -168,16 +193,12 @@ def filter_jobs(
                 job.requirements = json.loads(job.requirements)
             except Exception:
                 job.requirements = []
+        # Image URL larni to'liq qilib chiqaramiz
+        job.job_image_url = get_full_url(job.job_image_url)
+        job.company_image_url = get_full_url(job.company_image_url)
         jobs_list.append(job)
 
     return {
-        "filter_info": {
-            "cities": all_cities,
-            "salary_range": {
-                "min": global_min_salary,
-                "max": global_max_salary
-            }
-        },
         "total": len(jobs_list),
         "jobs": jobs_list
     }

@@ -19,6 +19,13 @@ class JobBase(BaseModel):
 class JobCreate(JobBase):
     pass
 
+class JobFilterRequest(BaseModel):
+    min_salary: Optional[int] = None
+    max_salary: Optional[int] = None
+    city: Optional[str] = None
+    skip: int = 0
+    limit: int = 100
+
 class JobUpdate(BaseModel):
     title: Optional[str] = None
     company_name: Optional[str] = None
