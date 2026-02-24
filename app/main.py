@@ -12,6 +12,7 @@ import sys
 from fastapi.openapi.docs import get_swagger_ui_html
 from app.core.context import set_base_url
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse
 
 # Configure logging to write to stdout
 logging.basicConfig(
@@ -48,7 +49,7 @@ async def custom_swagger_ui_html():
         openapi_url=app.openapi_url,
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_favicon_url="admin-ui/images/jobway.png",
+        swagger_favicon_url="/admin-ui/images/jobway.png",
     )
     
     # Inject our custom CSS and JS
@@ -110,6 +111,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error", "error": str(exc)},
     )
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse("app/static/admin/images/jobway.png")
 
 # Include routers
 app.include_router(auth.router, prefix="/api")

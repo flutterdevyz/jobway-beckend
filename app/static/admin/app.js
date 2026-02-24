@@ -41,7 +41,21 @@ document.addEventListener('DOMContentLoaded', () => {
         loginView.classList.remove('hidden');
         appContainer.classList.add('hidden');
     }
+    function closeModalAndReset() {
+        modal.classList.add('hidden');
+        state.modalType = null;
+        state.editItem = null;
 
+        const formActions = modalForm.querySelector('.form-actions');
+        if (formActions) formActions.classList.remove('hidden');
+
+        modalForm.reset();
+    }
+
+    closeModal.onclick = closeModalAndReset;
+    window.onclick = (e) => {
+        if (e.target == modal) closeModalAndReset();
+    };
     function showApp() {
         loginView.classList.add('hidden');
         appContainer.classList.remove('hidden');
@@ -385,22 +399,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Hide modal form's default submit button; use custom Send button instead
         const formActions = modalForm.querySelector('.form-actions');
-        if (formActions) formActions.classList.remove('hidden');
+        if (formActions) formActions.classList.add('hidden');
+
+        // Add a dedicated Send button at the bottom of formFields
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.className = 'primary-btn';
+        sendBtn.style = 'margin-top: 16px; width: 100%;';
+        sendBtn.innerText = 'Send Notification';
+        sendBtn.onclick = () => window.submitNotification();
+        formFields.appendChild(sendBtn);
+
         modal.classList.remove('hidden');
         feather.replace();
     };
 
-    modalForm.onsubmit = async (e) => {
-        e.preventDefault();
+    // Notification modal submit is handled via its own inline button (not modalForm.onsubmit)
+    // This avoids conflicts with handleModalSubmit
+    window.submitNotification = async () => {
+        const userIdEl = document.getElementById('notif-user-id');
+        const titleEl = document.getElementById('notif-title');
+        const messageEl = document.getElementById('notif-message');
+
+        if (!userIdEl || !titleEl || !messageEl) {
+            alert('Please fill in all fields.');
+            return;
+        }
+
+        const userId = parseInt(userIdEl.value);
+
         const data = {
-            user_id: parseInt(document.getElementById('notif-user-id').value),
-            title: document.getElementById('notif-title').value,
-            message: document.getElementById('notif-message').value
+            user_id: userId,
+            title: titleEl.value.trim(),
+            message: messageEl.value.trim()
         };
 
         try {
-            const res = await fetch('/api/admin/notifications', {
+            const res = await fetch(`${BASE_URL}/api/admin/notifications`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${state.token}`,
@@ -412,7 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 alert('Notification sent!');
                 modal.classList.add('hidden');
-                modalForm.onsubmit = handleModalSubmit;
             } else {
                 const err = await res.json();
                 alert('Failed: ' + (err.detail || 'check console'));
@@ -467,6 +503,24 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const err = await res.json();
                 alert('Xatolik: ' + (err.detail || 'parolni o\'zgartirib bo\'lmadi'));
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    };
+
+    window.deleteItem = async (type, id) => {
+        if (!confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) return;
+        try {
+            const res = await fetch(`/api/admin/${type}/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${state.token}` }
+            });
+            if (res.ok || res.status === 204) {
+                renderView(state.currentView);
+            } else {
+                const err = await res.json();
+                alert('Delete failed: ' + (err.detail || 'Unknown error'));
             }
         } catch (err) {
             alert('Error: ' + err.message);
@@ -585,6 +639,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleModalSubmit(e) {
         e.preventDefault();
+
+        // Guard: if no modal type is set, do nothing (prevents /api/admin/null requests)
+        if (!state.modalType) {
+            console.warn('handleModalSubmit called with no modalType set.');
+            return;
+        }
+
         const formData = new FormData(modalForm);
         const data = Object.fromEntries(formData.entries());
 
