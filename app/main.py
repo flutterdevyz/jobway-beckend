@@ -13,6 +13,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from app.core.context import set_base_url
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure logging to write to stdout
 logging.basicConfig(
@@ -41,6 +42,17 @@ app = FastAPI(
     openapi_url="/api/schema",
     redoc_url=None,
     debug=True
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://jobway.uz",
+        "https://www.jobway.uz",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/api/docs", include_in_schema=False)

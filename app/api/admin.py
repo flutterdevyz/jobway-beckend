@@ -21,7 +21,7 @@ print("DEBUG: admin.py module loading...")
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/ping")
-def admin_ping():
+def admin_ping(current_user: User = Depends(deps.get_current_admin_user)):
     return {"status": "ok", "message": "Admin API is active"}
 
 @router.get("/users", response_model=List[AdminUserResponse])
