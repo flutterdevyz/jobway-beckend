@@ -68,7 +68,8 @@ def read_jobs(
     city: str = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     try:
         print(f"DEBUG: Entering read_jobs, category_id={category_id}, min_salary={min_salary}, max_salary={max_salary}, city={city}")
@@ -123,7 +124,8 @@ def get_my_jobs(
 
 @router.get("/filter", summary="Filter uchun mavjud shaharlar va salary range")
 def get_filter_options(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     """
     Filter UI uchun kerakli ma'lumotlarni qaytaradi:
@@ -154,7 +156,8 @@ def get_filter_options(
 @router.post("/filter/result", summary="Filter bo'yicha joblarni qaytaradi (POST)")
 def filter_jobs(
     filters: JobFilterRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     """
     Ishlarni filter qiladi. Parametrlar POST body orqali JSON formatida yuboriladi.
@@ -206,7 +209,8 @@ def filter_jobs(
 @router.get("/{job_id}", response_model=JobResponse)
 def read_job(
     job_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:

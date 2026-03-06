@@ -61,7 +61,7 @@ async def custom_swagger_ui_html():
         openapi_url=app.openapi_url,
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_favicon_url="/admin-ui/images/jobway.png",
+        swagger_favicon_url="/favicon.ico", 
     )
     
     # Inject our custom CSS and JS
@@ -123,10 +123,37 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error", "error": str(exc)},
     )
-
+    
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("app/static/admin/images/jobway.png")
+    import os
+    # Loyiha ildizini aniqlash
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+    # Barcha ehtimoliy yo'llar (Rasmda ko'ringan barcha variantlar)
+    paths_to_try = [
+        # 1-variant: To'g'ridan-to'g'ri admin ichida
+        os.path.join(BASE_DIR, "app", "static", "admin", "jobway.png"),
+        # 2-variant: admin/images ichida
+        os.path.join(BASE_DIR, "app", "static", "admin", "images", "jobway.png"),
+        # 3-variant: admin/admin-ui/images ichida
+        os.path.join(BASE_DIR, "app", "static", "admin", "admin-ui", "images", "jobway.png"),
+        # 4-variant: Agar main.py app ichida bo'lsa
+        os.path.join(os.path.dirname(BASE_DIR), "app", "static", "admin", "jobway.png"),
+    ]
+    
+    for path in paths_to_try:
+        if os.path.exists(path):
+            logger.info(f"Favicon topildi: {path}")
+            return FileResponse(path, media_type="image/png")
+    
+    # Agar topilmasa, terminalda qayerlarni qidirganini ko'rsatadi
+    print(f"\n❌ XATO: Favicon topilmadi!")
+    for p in paths_to_try:
+        print(f"Tekshirildi: {p}")
+    
+    return JSONResponse(status_code=404, content={"detail": "Icon not found"})
+
 
 # Include routers
 app.include_router(auth.router, prefix="/api")

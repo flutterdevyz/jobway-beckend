@@ -11,7 +11,8 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("/", response_model=List[CategoryResponse])
 def read_categories(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     return db.query(Category).all()
 
@@ -40,7 +41,8 @@ def create_category(
 @router.get("/{category_id}", response_model=CategoryResponse)
 def read_category(
     category_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
